@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CALC</title>
+  <style>
+    @font-face {
+      font-family: 'JetBrains Mono';
+      src: url('https://cdn.jsdelivr.net/gh/JetBrains/JetBrainsMono/fonts/webfonts/JetBrainsMono-Regular.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'JetBrains Mono';
+      src: url('https://cdn.jsdelivr.net/gh/JetBrains/JetBrainsMono/fonts/webfonts/JetBrainsMono-Bold.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'JetBrains Mono';
+      src: url('https://cdn.jsdelivr.net/gh/JetBrains/JetBrainsMono/fonts/webfonts/JetBrainsMono-ExtraBold.woff2') format('woff2');
+      font-weight: 800;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'JetBrains Mono';
+      src: url('https://cdn.jsdelivr.net/gh/JetBrains/JetBrainsMono/fonts/webfonts/JetBrainsMono-Light.woff2') format('woff2');
+      font-weight: 300;
+      font-style: normal;
+    }
+  </style>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card: #16161f;
+    --border: #252535;
+    --accent: #c8ff00;
+    --accent2: #ff6b35;
+    --text: #f0f0f5;
+    --muted: #6060a0;
+    --btn-dark: #0e0e18;
+    --btn-mid: #1a1a28;
+    --btn-light: #22223a;
+  }
+
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', 'JetBrainsMonoNL Nerd Font', monospace;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Ambient background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 80%, rgba(200,255,0,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 80% 20%, rgba(255,107,53,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 80% at 50% 50%, rgba(80,60,160,0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Noise overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .calc-wrapper {
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .calculator {
+    width: 340px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.04) inset,
+      0 40px 80px rgba(0,0,0,0.6),
+      0 0 60px rgba(200,255,0,0.04);
+  }
+
+  /* Display */
+  .display {
+    padding: 28px 28px 20px;
+    background: var(--btn-dark);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .display::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(200,255,0,0.3), transparent);
+  }
+
+  .calc-label {
+    font-family: 'JetBrains Mono', 'JetBrainsMonoNL Nerd Font', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.35em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .expression {
+    font-size: 13px;
+    color: var(--muted);
+    min-height: 18px;
+    text-align: right;
+    letter-spacing: 0.05em;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .result {
+    font-family: 'JetBrains Mono', 'JetBrainsMonoNL Nerd Font', monospace;
+    font-size: 52px;
+    font-weight: 800;
+    color: var(--text);
+    text-align: right;
+    line-height: 1;
+    margin-top: 4px;
+    letter-spacing: -0.03em;
+    transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .result.pop {
+    animation: pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+
+  .result.accent { color: var(--accent); }
+
+  /* Buttons */
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    padding: 1px;
+  }
+
+  .btn {
+    position: relative;
+    font-family: 'JetBrains Mono', 'JetBrainsMonoNL Nerd Font', monospace;
+    font-size: 16px;
+    font-weight: 400;
+    height: 72px;
+    border: none;
+    cursor: pointer;
+    color: var(--text);
+    background: var(--btn-mid);
+    transition: background 0.12s, transform 0.1s, color 0.12s;
+    letter-spacing: 0.02em;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
+  }
+
+  .btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.12), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .btn:hover { background: var(--btn-light); }
+  .btn:active { transform: scale(0.93); background: var(--btn-dark); }
+  .btn:active::after { opacity: 1; }
+
+  /* Function buttons (AC, ±, %) */
+  .btn.fn {
+    background: var(--btn-light);
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .btn.fn:hover { background: #2a2a45; color: var(--text); }
+
+  /* Operator buttons */
+  .btn.op {
+    background: rgba(200,255,0,0.08);
+    color: var(--accent);
+    font-size: 20px;
+  }
+  .btn.op:hover { background: rgba(200,255,0,0.16); }
+  .btn.op.active {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .btn.op.active:hover { background: #d4ff1a; }
+
+  /* Equals */
+  .btn.eq {
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 20px;
+    font-weight: 500;
+  }
+  .btn.eq:hover { background: #d4ff1a; }
+  .btn.eq:active { background: #b8e800; }
+
+  /* Zero (wide) */
+  .btn.zero {
+    grid-column: span 2;
+    justify-content: flex-start;
+    padding-left: 28px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* First row corners */
+  .btn:nth-child(1) { border-radius: 0; }
+
+  /* Ripple */
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    transform: scale(0);
+    animation: rippleAnim 0.5s linear;
+    pointer-events: none;
+  }
+  @keyframes rippleAnim {
+    to { transform: scale(4); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="calc-wrapper">
+  <div class="calculator">
+    <div class="display">
+      <div class="calc-label">Calculator</div>
+      <div class="expression" id="expression"></div>
+      <div class="result" id="result">0</div>
+    </div>
+    <div class="buttons" id="buttons">
+      <!-- Row 1 -->
+      <button class="btn fn" data-action="clear">AC</button>
+      <button class="btn fn" data-action="sign">±</button>
+      <button class="btn fn" data-action="percent">%</button>
+      <button class="btn op" data-action="op" data-op="÷">÷</button>
+      <!-- Row 2 -->
+      <button class="btn" data-action="num" data-num="7">7</button>
+      <button class="btn" data-action="num" data-num="8">8</button>
+      <button class="btn" data-action="num" data-num="9">9</button>
+      <button class="btn op" data-action="op" data-op="×">×</button>
+      <!-- Row 3 -->
+      <button class="btn" data-action="num" data-num="4">4</button>
+      <button class="btn" data-action="num" data-num="5">5</button>
+      <button class="btn" data-action="num" data-num="6">6</button>
+      <button class="btn op" data-action="op" data-op="−">−</button>
+      <!-- Row 4 -->
+      <button class="btn" data-action="num" data-num="1">1</button>
+      <button class="btn" data-action="num" data-num="2">2</button>
+      <button class="btn" data-action="num" data-num="3">3</button>
+      <button class="btn op" data-action="op" data-op="+">+</button>
+      <!-- Row 5 -->
+      <button class="btn zero" data-action="num" data-num="0">0</button>
+      <button class="btn" data-action="decimal">.</button>
+      <button class="btn eq" data-action="equals">=</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const resultEl = document.getElementById('result');
+  const exprEl = document.getElementById('expression');
+
+  let current = '0';
+  let previous = null;
+  let operator = null;
+  let shouldReset = false;
+  let justEqualed = false;
+
+  function updateDisplay(val, isResult = false) {
+    // Format nicely
+    let display = val;
+    if (!isNaN(val) && val !== '' && !val.toString().includes('e')) {
+      const num = parseFloat(val);
+      if (Number.isInteger(num) && Math.abs(num) < 1e12) {
+        display = num.toLocaleString('en-US');
+      }
+    }
+    resultEl.textContent = display;
+    resultEl.classList.toggle('accent', isResult);
+
+    // Pop animation
+    resultEl.classList.remove('pop');
+    void resultEl.offsetWidth;
+    resultEl.classList.add('pop');
+  }
+
+  function setExpression(text) {
+    exprEl.textContent = text;
+  }
+
+  function clearActiveOps() {
+    document.querySelectorAll('.btn.op').forEach(b => b.classList.remove('active'));
+  }
+
+  function handleNum(num) {
+    if (justEqualed) { current = '0'; justEqualed = false; }
+    if (shouldReset) { current = '0'; shouldReset = false; }
+    if (current === '0' && num !== '.') current = num;
+    else if (current.length < 12) current += num;
+    updateDisplay(current);
+  }
+
+  function handleDecimal() {
+    if (justEqualed) { current = '0'; justEqualed = false; }
+    if (shouldReset) { current = '0'; shouldReset = false; }
+    if (!current.includes('.')) current += '.';
+    updateDisplay(current);
+  }
+
+  function handleOp(op) {
+    clearActiveOps();
+    document.querySelector(`[data-op="${op}"]`)?.classList.add('active');
+
+    if (previous !== null && operator && !shouldReset) {
+      calculate(false);
+    } else {
+      previous = parseFloat(current);
+    }
+    operator = op;
+    shouldReset = true;
+    justEqualed = false;
+    setExpression(`${previous} ${op}`);
+  }
+
+  function calculate(final = true) {
+    if (previous === null || !operator) return;
+    const a = previous;
+    const b = parseFloat(current);
+    let res;
+    switch (operator) {
+      case '+': res = a + b; break;
+      case '−': res = a - b; break;
+      case '×': res = a * b; break;
+      case '÷': res = b === 0 ? 'Error' : a / b; break;
+    }
+    if (final) {
+      setExpression(`${a} ${operator} ${b} =`);
+      clearActiveOps();
+      operator = null;
+      previous = null;
+      justEqualed = true;
+      shouldReset = true;
+    } else {
+      previous = res;
+    }
+    current = res.toString();
+    updateDisplay(current, final);
+  }
+
+  function handleClear() {
+    current = '0';
+    previous = null;
+    operator = null;
+    shouldReset = false;
+    justEqualed = false;
+    clearActiveOps();
+    setExpression('');
+    updateDisplay('0');
+  }
+
+  function handleSign() {
+    current = (parseFloat(current) * -1).toString();
+    updateDisplay(current);
+  }
+
+  function handlePercent() {
+    current = (parseFloat(current) / 100).toString();
+    updateDisplay(current);
+  }
+
+  // Button events
+  document.getElementById('buttons').addEventListener('click', e => {
+    const btn = e.target.closest('.btn');
+    if (!btn) return;
+
+    // Ripple
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple';
+    const rect = btn.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height) * 2;
+    ripple.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX - rect.left - size/2}px;top:${e.clientY - rect.top - size/2}px`;
+    btn.appendChild(ripple);
+    ripple.addEventListener('animationend', () => ripple.remove());
+
+    const action = btn.dataset.action;
+    if (action === 'num') handleNum(btn.dataset.num);
+    else if (action === 'decimal') handleDecimal();
+    else if (action === 'op') handleOp(btn.dataset.op);
+    else if (action === 'equals') calculate();
+    else if (action === 'clear') handleClear();
+    else if (action === 'sign') handleSign();
+    else if (action === 'percent') handlePercent();
+
+    // Update AC label
+    document.querySelector('[data-action="clear"]').textContent = (current !== '0' || previous) ? 'C' : 'AC';
+  });
+
+  // Ripple glow effect
+  document.querySelectorAll('.btn').forEach(btn => {
+    btn.addEventListener('mousemove', e => {
+      const rect = btn.getBoundingClientRect();
+      btn.style.setProperty('--x', `${e.clientX - rect.left}px`);
+      btn.style.setProperty('--y', `${e.clientY - rect.top}px`);
+    });
+    btn.addEventListener('mouseenter', () => { btn.querySelector('::after'); });
+  });
+
+  // Keyboard support
+  document.addEventListener('keydown', e => {
+    if (e.key >= '0' && e.key <= '9') handleNum(e.key);
+    else if (e.key === '.') handleDecimal();
+    else if (e.key === '+') handleOp('+');
+    else if (e.key === '-') handleOp('−');
+    else if (e.key === '*') handleOp('×');
+    else if (e.key === '/') { e.preventDefault(); handleOp('÷'); }
+    else if (e.key === 'Enter' || e.key === '=') calculate();
+    else if (e.key === 'Escape') handleClear();
+    else if (e.key === 'Backspace') {
+      if (current.length > 1) current = current.slice(0, -1);
+      else current = '0';
+      updateDisplay(current);
+    }
+    else if (e.key === '%') handlePercent();
+  });
+</script>
+</body>
+</html>
